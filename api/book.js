@@ -1,4 +1,5 @@
-// /api/book.js — Send owner notifications to Discord via Webhook (no SMS/email accounts)
+// /api/book.js — Discord Webhook notifications (no SMS/email accounts)
+// Validates Swedish mobile + two times at least 1h apart.
 // Always returns JSON { ok: true } on success so the frontend can rely on it.
 
 export default async function handler(req, res) {
@@ -20,10 +21,12 @@ export default async function handler(req, res) {
     }
   }
 
-  // Validate (Swedish mobiles only)
+  // Validate
   const errs = [];
   if (!data.adress) errs.push("Adress saknas");
   if (!validSEMobile(data.telefon)) errs.push("Telefon ogiltigt (svenskt mobilnummer)");
+  if (!data.tid1 || !data.tid2) errs.push("Båda tiderna måste anges");
+  if (data.tid1 && data.tid2 && !validTimePair(data.tid1, data.tid2)) errs.push("Minst 1 timme mellan tid 1 och tid 2");
   if (errs.length) return res.status(400).json({ ok: false, error: "Validation error", details: errs });
 
   // Rate-limit 60s via signed cookie
@@ -39,15 +42,17 @@ export default async function handler(req, res) {
 
   // Compose Discord message
   const namn = (data.namn || "").toString().trim();
-  const when = (data.onskadHamtningsTid || "").toString().trim();
   const phone = normalizeSE(data.telefon);
+  const when1 = formatDT(data.tid1);
+  const when2 = formatDT(data.tid2);
 
   const content = [
     "**Ny pantbokning – HEMPANT**",
     namn ? `**Namn:** ${namn}` : null,
     `**Telefon (Swish):** ${phone}`,
     `**Adress:** ${data.adress}`,
-    when ? `**Önskad tid:** ${when}` : null
+    `**Tid 1:** ${when1}`,
+    `**Tid 2:** ${when2} (≥ 1h från tid 1)`
   ].filter(Boolean).join("\n");
 
   // Send to Discord
@@ -61,15 +66,14 @@ export default async function handler(req, res) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content })
     });
-    // Discord returns 204 No Content on success; treat any 2xx as success:
-    ok = resp.status >= 200 && resp.status < 300;
+    ok = resp.status >= 200 && resp.status < 300; // 204 included
   } catch {
     ok = false;
   }
 
   if (!ok) return res.status(502).json({ ok: false, error: "Notification failed" });
 
-  // Always return JSON body on success
+  // Success JSON
   return res.status(200).json({
     ok: true,
     serverId: uid(),
@@ -90,6 +94,17 @@ function normalizeSE(v){
   if (/^\+467[02369]\d{7}$/.test(d)) return d;
   if (/^07[02369]\d{7}$/.test(d)) return "+46" + d.slice(1);
   return d;
+}
+function validTimePair(a, b){
+  const t1 = new Date(a).getTime();
+  const t2 = new Date(b).getTime();
+  if (isNaN(t1) || isNaN(t2)) return false;
+  return Math.abs(t2 - t1) >= 60 * 60 * 1000;
+}
+function formatDT(v){
+  try {
+    return new Date(v).toLocaleString("sv-SE", { dateStyle: "medium", timeStyle: "short" });
+  } catch { return v; }
 }
 function readRaw(req){
   return new Promise((resolve, reject) => {
