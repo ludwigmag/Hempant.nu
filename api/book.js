@@ -1,40 +1,31 @@
-// /api/book.js — Vercel Serverless Function
-// - Receives booking JSON { adress, telefon, namn?, onskadHamtningsTid? }
-// - Simple 60s rate-limit via signed cookie (no DB).
-// - Sends SMS to owners via Twilio REST API (no npm deps).
-
-// If you prefer Edge runtime, adjust crypto usage to WebCrypto. Node runtime is simplest here.
+// /api/book.js — Send owner notifications to Discord via Webhook (no SMS/email accounts)
 
 export default async function handler(req, res) {
-  // CORS (safe to leave for same-origin; adjust as needed)
+  // CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
+  if (req.method !== "POST") return res.status(405).json({ ok: false, error: "Method not allowed" });
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
-  }
-
-  // Parse JSON robustly
-  let body = req.body;
-  if (!body || typeof body === "string") {
+  // Parse JSON
+  let data = req.body;
+  if (!data || typeof data === "string") {
     try {
-      const raw = typeof body === "string" ? body : await readRaw(req);
-      body = raw ? JSON.parse(raw) : {};
+      const raw = typeof data === "string" ? data : await readRaw(req);
+      data = raw ? JSON.parse(raw) : {};
     } catch {
       return res.status(400).json({ ok: false, error: "Invalid JSON body" });
     }
   }
-  const data = body || {};
 
-  // Basic validation
+  // Validate (Swedish mobiles only)
   const errs = [];
   if (!data.adress) errs.push("Adress saknas");
-  if (!validPhone(data.telefon)) errs.push("Telefon ogiltigt");
+  if (!validSEMobile(data.telefon)) errs.push("Telefon ogiltigt (svenskt mobilnummer)");
   if (errs.length) return res.status(400).json({ ok: false, error: "Validation error", details: errs });
 
-  // Minimal rate limit with signed cookie
+  // Rate-limit 60s via signed cookie
   try {
     const now = Date.now();
     const cookieHeader = req.headers.cookie || "";
@@ -42,142 +33,78 @@ export default async function handler(req, res) {
     if (typeof prevTs === "number" && now - prevTs < 60_000) {
       return res.status(429).json({ ok: false, error: "Rate limited" });
     }
-    // set new cookie
-    const setCookie = await buildRateCookie(now, req);
-    res.setHeader("Set-Cookie", setCookie);
-  } catch {
-    // If cookie/signature fails, we still proceed (best effort)
-  }
+    res.setHeader("Set-Cookie", await buildRateCookie(now, req));
+  } catch {}
 
-  // Compose SMS
+  // Compose Discord message
   const namn = (data.namn || "").toString().trim();
   const when = (data.onskadHamtningsTid || "").toString().trim();
-  const smsBody =
-    `Ny pantbokning:\n` +
-    (namn ? `Namn: ${namn}\n` : "") +
-    `Telefon (Swish): ${data.telefon}\n` +
-    `Adress: ${data.adress}\n` +
-    (when ? `Önskad tid: ${when}\n` : "") +
-    `— Skickad från hemsidan`;
+  const phone = normalizeSE(data.telefon);
 
-  // Send via Twilio REST API without dependencies
-  const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || "";
-  const TWILIO_AUTH_TOKEN  = process.env.TWILIO_AUTH_TOKEN  || "";
-  const TWILIO_FROM        = process.env.TWILIO_FROM        || ""; // e.g. +4670...
-  const TWILIO_MSS_SID     = process.env.TWILIO_MESSAGING_SERVICE_SID || "";
-  const OWNERS             = (process.env.OWNERS_SMS_NUMBERS || "").split(",").map(s => s.trim()).filter(Boolean);
+  const content = [
+    "**Ny pantbokning – HEMPANT**",
+    namn ? `**Namn:** ${namn}` : null,
+    `**Telefon (Swish):** ${phone}`,
+    `**Adress:** ${data.adress}`,
+    when ? `**Önskad tid:** ${when}` : null
+  ].filter(Boolean).join("\n");
 
-  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || (!TWILIO_FROM && !TWILIO_MSS_SID) || OWNERS.length === 0) {
-    return res.status(500).json({ ok: false, error: "Server SMS not configured" });
+  // Send to Discord
+  const hook = process.env.DISCORD_WEBHOOK_URL || "";
+  if (!hook) return res.status(500).json({ ok: false, error: "DISCORD_WEBHOOK_URL missing" });
+
+  const resp = await fetch(hook, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ content }) // simple text; could use embeds too
+  });
+
+  if (!(resp.ok || resp.status === 204)) {
+    return res.status(502).json({ ok: false, error: "Notification failed" });
   }
 
-  const auth = Buffer.from(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`).toString("base64");
-  const url  = `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_ACCOUNT_SID}/Messages.json`;
-
-  let successes = 0, failures = 0;
-  for (const to of OWNERS) {
-    const params = new URLSearchParams();
-    params.append("To", to);
-    if (TWILIO_MSS_SID) params.append("MessagingServiceSid", TWILIO_MSS_SID);
-    else params.append("From", TWILIO_FROM);
-    params.append("Body", smsBody);
-
-    try {
-      const resp = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Authorization": `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded"
-        },
-        body: params.toString()
-      });
-      const json = await resp.json().catch(() => ({}));
-      if (resp.ok && json && json.sid) successes++;
-      else failures++;
-    } catch {
-      failures++;
-    }
-  }
-
-  if (successes === 0) {
-    return res.status(502).json({ ok: false, error: "SMS send failed" });
-  }
-
-  const serverId = "svr_" + Math.random().toString(36).slice(2);
-  const serverTime = new Date().toISOString();
-  return res.status(200).json({ ok: true, serverId, serverTime, sent: successes, failed: failures });
+  return res.status(200).json({ ok: true, serverId: uid(), serverTime: new Date().toISOString() });
 }
 
-// --- helpers ---
-
-function validPhone(v) {
+// ----- helpers -----
+function validSEMobile(v){
   if (!v) return false;
-  const s = String(v).trim();
-  // Very permissive: allow E.164 or typical mobile formats
-  return /^\+?\d[\d\s-]{6,}$/.test(s);
+  const d = String(v).trim().replace(/[^\d+]/g, '');
+  const reLocal = /^0?7[02369]\d{7}$/;   // 07XXXXXXXX
+  const reE164  = /^\+467[02369]\d{7}$/; // +467XXXXXXXX
+  return reLocal.test(d) || reE164.test(d);
 }
-
-function readRaw(req) {
+function normalizeSE(v){
+  const d = String(v).trim().replace(/[^\d+]/g, '');
+  if (/^\+467[02369]\d{7}$/.test(d)) return d;
+  if (/^07[02369]\d{7}$/.test(d)) return "+46" + d.slice(1);
+  return d;
+}
+function readRaw(req){
   return new Promise((resolve, reject) => {
-    let raw = "";
-    req.on("data", c => raw += c);
-    req.on("end", () => resolve(raw));
-    req.on("error", reject);
+    let raw = ""; req.on("data", c => raw += c);
+    req.on("end", () => resolve(raw)); req.on("error", reject);
   });
 }
 
-// Signed rate-limit cookie (includes IP in signature if available)
 import crypto from "node:crypto";
-
 const COOKIE_NAME = "rl";
-const MAX_AGE = 60 * 60 * 24; // 1 day
-
-function parseRateCookie(cookieHeader, req) {
-  const cookie = parseCookie(cookieHeader)[COOKIE_NAME];
-  if (!cookie) return null;
-  try {
-    const [payloadB64, sigB64] = cookie.split(".");
-    if (!payloadB64 || !sigB64) return null;
-    const secret = process.env.RATE_LIMIT_SECRET || "";
-    const expected = sign(payloadB64, secret, clientKey(req));
-    if (sigB64 !== expected) return null;
-    const json = JSON.parse(Buffer.from(payloadB64, "base64").toString("utf8"));
-    if (typeof json.ts !== "number") return null;
-    return { ts: json.ts };
-  } catch {
-    return null;
-  }
+const MAX_AGE = 60 * 60 * 24;
+function parseRateCookie(header, req){
+  const c = parseCookie(header)[COOKIE_NAME]; if (!c) return null;
+  try{
+    const [p,s] = c.split("."); if (!p || !s) return null;
+    const expected = sign(p, secret(), clientKey(req)); if (s !== expected) return null;
+    return JSON.parse(Buffer.from(p, "base64").toString("utf8"));
+  }catch{ return null; }
 }
-
-async function buildRateCookie(ts, req) {
-  const payload = { ts };
-  const payloadB64 = Buffer.from(JSON.stringify(payload), "utf8").toString("base64");
-  const secret = process.env.RATE_LIMIT_SECRET || "";
-  const sigB64 = sign(payloadB64, secret, clientKey(req));
-  const cookie = `${COOKIE_NAME}=${payloadB64}.${sigB64}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}`;
-  return cookie;
+async function buildRateCookie(ts, req){
+  const p = Buffer.from(JSON.stringify({ ts }), "utf8").toString("base64");
+  const s = sign(p, secret(), clientKey(req));
+  return `${COOKIE_NAME}=${p}.${s}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${MAX_AGE}`;
 }
-
-function sign(payloadB64, secret, keyExtra) {
-  const h = crypto.createHmac("sha256", secret || "weak-secret");
-  h.update(payloadB64 + "|" + keyExtra);
-  return h.digest("base64url");
-}
-
-function clientKey(req) {
-  const xff = (req.headers["x-forwarded-for"] || "").toString();
-  const ip = xff.split(",")[0].trim() || "unknown";
-  return ip;
-}
-
-// Simple cookie parser
-function parseCookie(h) {
-  const out = {};
-  if (!h) return out;
-  const parts = h.split(";").map(s => s.trim());
-  for (const p of parts) {
-    const i = p.indexOf("=");
-    if (i > -1) out[p.slice(0, i)] = p.slice(i + 1);
-  }
-  return out;
-}
+function sign(p, key, extra){ const h=crypto.createHmac("sha256", key || "weak"); h.update(p + "|" + extra); return h.digest("base64url"); }
+function clientKey(req){ const xff=(req.headers["x-forwarded-for"]||"")+"", ip = xff.split(",")[0].trim() || "unknown"; return ip; }
+function secret(){ return process.env.RATE_LIMIT_SECRET || ""; }
+function parseCookie(h){ const o={}; if(!h) return o; for(const part of h.split(";")){ const p=part.trim(); const i=p.indexOf("="); if(i>-1) o[p.slice(0,i)] = p.slice(i+1); } return o; }
+function uid(){ return "svr_" + Math.random().toString(36).slice(2); }
