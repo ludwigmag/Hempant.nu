@@ -4,20 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pantupphämtning</title>
-  <!-- Basic SEO (no Twitter tags as requested) -->
-  <meta name="description" content="Boka upphämtning av pantpåsar och få utbetalning via Swish eller saldokonto. Enkelt och hemtrevligt.">
+  <meta name="description" content="Boka upphämtning av pantpåsar – fyll i adress och telefon (Swish) så får vi din bokning via SMS. Enkelt och hemtrevligt.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2310b981'/%3E%3Ctext x='50' y='58' text-anchor='middle' font-size='54' fill='white' font-family='Segoe UI,Roboto,Helvetica,Arial,sans-serif'%3EP%3C/text%3E%3C/svg%3E"/>
-  
-  <!-- Tailwind via CDN for this one‑pager -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    #adminToggle{ position:fixed; right:16px; bottom:16px; padding:10px 14px; border-radius:14px; background:#111827; color:#fff; box-shadow:0 6px 16px rgba(0,0,0,.15); z-index:9999; font-size:14px; opacity:.85; transition:transform .08s ease, opacity .2s ease; }
-    #adminToggle:hover{ opacity:1; }
+    .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+    .modal-open{overflow:hidden}
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-amber-50 to-rose-50 text-stone-800">
+
   <!-- Header -->
   <header class="sticky top-0 z-20 backdrop-blur bg-amber-50/70 border-b">
     <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
@@ -25,462 +21,187 @@
         <div class="h-9 w-9 rounded-xl bg-emerald-600"></div>
         <span class="font-semibold">PantHämt</span>
       </div>
-      <nav class="flex items-center gap-1 text-sm">
-        <button class="px-3 py-2 rounded-xl hover:bg-black/5" data-nav="home">Hem</button>
-        <button class="px-3 py-2 rounded-xl hover:bg-black/5" data-nav="form">Boka</button>
-        <button class="px-3 py-2 rounded-xl hover:bg-black/5" data-nav="konto">
-          Saldo: <span id="saldoTop" class="font-semibold">0 kr</span>
-        </button>
+      <nav class="flex items-center gap-2 text-sm">
+        <a href="#info" class="px-3 py-2 rounded-xl hover:bg-black/5">Så funkar det</a>
       </nav>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="mx-auto max-w-5xl px-4 pb-24 pt-6">
+  <!-- Hero -->
+  <main class="mx-auto max-w-5xl px-4 pt-12 pb-24">
+    <section class="text-center">
+      <h1 class="text-3xl md:text-4xl font-semibold leading-tight">Hemtrevlig pantservice – vi hämtar där du bor</h1>
+      <p class="mt-3 opacity-80">Tryck på knappen nedan för att boka upphämtning. Vi får din bokning via SMS.</p>
 
-    <!-- HOME -->
-    <section id="view-home" class="space-y-10">
-      <div class="grid gap-6 md:grid-cols-2 items-center">
-        <div>
-          <h1 class="text-3xl md:text-4xl font-semibold leading-tight">Hemtrevlig pantservice – vi hämtar där du bor</h1>
-          <p class="mt-3 opacity-80">Välj upphämtning, fyll i dina uppgifter och få utbetalning via Swish eller till ditt saldokonto här på sidan.</p>
-          <div class="mt-6 flex gap-3">
-            <button class="rounded-2xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700" data-nav="form">Boka upphämtning</button>
-            <a href="#rullband" class="rounded-2xl px-5 py-3 hover:bg-black/5">Utforska</a>
-          </div>
+      <!-- BIG CTA BUTTON -->
+      <button id="openModal"
+        class="mt-8 inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-6 py-4 text-white text-lg font-semibold shadow hover:bg-emerald-700 active:scale-[0.99]">
+        HÄMTA MIN PANT – BOKA!
+      </button>
+
+      <!-- Decorative box -->
+      <div class="relative mx-auto mt-10 h-56 max-w-3xl">
+        <div class="absolute inset-0 rounded-3xl"
+             style="background: radial-gradient(circle at 30% 20%, rgba(16,185,129,.3), transparent 60%),
+                              radial-gradient(circle at 80% 30%, rgba(244,63,94,.25), transparent 60%);"></div>
+        <div class="absolute inset-3 rounded-3xl bg-white/70 border flex items-center justify-center text-center">
+          <p class="px-6">Placera gärna en bild/illustration här (t.ex. pantpåsar i hallen, någon som swishar).</p>
         </div>
-        <div class="relative h-52 md:h-64">
-          <div class="absolute inset-0 rounded-3xl" style="background: radial-gradient(circle at 30% 20%, rgba(16,185,129,.3), transparent 60%), radial-gradient(circle at 80% 30%, rgba(244,63,94,.25), transparent 60%);"></div>
-          <div class="absolute inset-3 rounded-3xl bg-white/70 border flex items-center justify-center text-center">
-            <p class="px-6">Placera din mysiga bild/illustration här (t.ex. en entré med påsar, någon som swishar etc.)</p>
-          </div>
-        </div>
-      </div>
-
-      <section id="rullband" class="space-y-3">
-        <h2 class="text-xl font-semibold">Välj i rullbandsmenyn</h2>
-        <div class="no-scrollbar flex gap-4 overflow-x-auto pb-2">
-          <button class="min-w-[220px] rounded-3xl border bg-white/70 p-4 text-left shadow-sm hover:shadow" data-rullband="Upphämtning">
-            <div class="font-medium">Upphämtning</div>
-            <div class="text-sm opacity-80">Boka hämtning hemma</div>
-          </button>
-          <div class="min-w-[220px] rounded-3xl border bg-white/70 p-4 text-left shadow-sm">
-            <div class="font-medium">Priser</div>
-            <div class="text-sm opacity-80">Enkelt & tydligt</div>
-          </div>
-          <div class="min-w-[220px] rounded-3xl border bg-white/70 p-4 text-left shadow-sm">
-            <div class="font-medium">Så funkar det</div>
-            <div class="text-sm opacity-80">Steg för steg</div>
-          </div>
-          <button class="min-w-[220px] rounded-3xl border bg-white/70 p-4 text-left shadow-sm hover:shadow" data-nav="konto">
-            <div class="font-medium">Kundkonto</div>
-            <div class="text-sm opacity-80">Saldo & historik</div>
-          </button>
-          <div class="min-w-[220px] rounded-3xl border bg-white/70 p-4 text-left shadow-sm">
-            <div class="font-medium">Om oss</div>
-            <div class="text-sm opacity-80">Vårt uppdrag</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-3xl border bg-white/70 p-5">
-          <div class="text-lg font-semibold">1. Boka</div>
-          <div class="opacity-80">Välj upphämtning och fyll i formuläret.</div>
-        </div>
-        <div class="rounded-3xl border bg-white/70 p-5">
-          <div class="text-lg font-semibold">2. Vi hämtar</div>
-          <div class="opacity-80">Vi kommer på överenskommen tid.</div>
-        </div>
-        <div class="rounded-3xl border bg-white/70 p-5">
-          <div class="text-lg font-semibold">3. Registrering</div>
-          <div class="opacity-80">Panten räknas/registreras.</div>
-        </div>
-        <div class="rounded-3xl border bg-white/70 p-5">
-          <div class="text-lg font-semibold">4. Utbetalning</div>
-          <div class="opacity-80">Swish eller saldokonto – du väljer.</div>
-        </div>
-      </section>
-
-      <section class="rounded-3xl border bg-white/70 p-6 text-center">
-        <h3 class="text-xl font-semibold">Redo att bli av med pantpåsarna?</h3>
-        <p class="opacity-80">Boka din upphämtning på två minuter.</p>
-        <button class="mt-4 rounded-2xl bg-stone-900 px-5 py-3 text-white" data-nav="form">Boka upphämtning</button>
-      </section>
-    </section>
-
-    <!-- FORM -->
-    <section id="view-form" class="hidden grid gap-6 md:grid-cols-3">
-      <div class="md:col-span-2">
-        <h1 class="text-2xl font-semibold mb-4">Boka upphämtning</h1>
-        <form id="bookingForm" class="space-y-6">
-          <fieldset class="rounded-3xl border bg-white/70 p-5">
-            <legend class="px-2 text-sm font-semibold opacity-80">Kontaktuppgifter</legend>
-            <label class="block">
-              <div class="mb-1 text-sm font-medium">Namn *</div>
-              <input name="namn" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="För- och efternamn" required />
-            </label>
-            <div class="grid gap-4 md:grid-cols-2 mt-4">
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Telefon *</div>
-                <input name="telefon" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="07x-xx xx xxx" required />
-              </label>
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">E‑post (valfritt)</div>
-                <input type="email" name="email" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="namn@example.com" />
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset class="rounded-3xl border bg-white/70 p-5">
-            <legend class="px-2 text-sm font-semibold opacity-80">Adress</legend>
-            <label class="block">
-              <div class="mb-1 text-sm font-medium">Gatuadress *</div>
-              <input name="adress" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="Ex. Storgatan 12" required />
-            </label>
-            <div class="grid gap-4 md:grid-cols-3 mt-4">
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Postnummer *</div>
-                <input name="postnummer" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="123 45" required />
-              </label>
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Ort *</div>
-                <input name="ort" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="Ex. Göteborg" required />
-              </label>
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Portkod (valfritt)</div>
-                <input name="portkod" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="—" />
-              </label>
-            </div>
-          </fieldset>
-
-          <fieldset class="rounded-3xl border bg-white/70 p-5">
-            <legend class="px-2 text-sm font-semibold opacity-80">Pant & upphämtning</legend>
-            <div class="grid gap-4 md:grid-cols-3">
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Antal påsar *</div>
-                <input type="number" min="0" name="antalPasar" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="Ex. 3" required />
-              </label>
-
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Pantnivå</div>
-                <select name="pantTyp" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30">
-                  <option value="uppskattad">Uppskattad</option>
-                  <option value="exakt">Exakt</option>
-                </select>
-              </label>
-
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Pantbelopp (kr) *</div>
-                <input type="number" min="0" name="pantBelopp" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="Ex. 120" required />
-              </label>
-            </div>
-
-            <div class="grid gap-4 md:grid-cols-2 mt-4">
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Önskad hämtning *</div>
-                <input type="datetime-local" name="onskadHamtningsTid" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" required />
-              </label>
-
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Utbetalning</div>
-                <select name="utbetalning" id="utbetalningSelect" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30">
-                  <option value="swish">Swish</option>
-                  <option value="saldo" selected>Saldo på hemsidan</option>
-                </select>
-              </label>
-            </div>
-
-            <div id="swishField" class="mt-4 hidden">
-              <label class="block">
-                <div class="mb-1 text-sm font-medium">Swish‑nummer *</div>
-                <input name="swish" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" placeholder="07x-xx xx xxx" />
-              </label>
-            </div>
-
-            <div id="saldoInfo" class="mt-4 rounded-2xl border bg-white/70 p-4 text-sm">
-              <p class="font-medium">Nuvarande saldo: <span class="font-semibold" id="saldoText">0 kr</span></p>
-              <p class="opacity-80">När vi hämtat och registrerat din pant sätts beloppet in på ditt saldokonto. (I denna demo sker det direkt vid bokning.)</p>
-            </div>
-          </fieldset>
-
-          <div class="flex items-center gap-3">
-            <button type="submit" class="rounded-2xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 active:scale-[0.99]">Skicka bokning</button>
-            <button type="button" class="rounded-2xl px-5 py-3 hover:bg-black/5" data-nav="home">Avbryt</button>
-          </div>
-        </form>
-      </div>
-
-      <aside class="md:col-span-1 space-y-4">
-        <div class="rounded-3xl border bg-white/70 p-5">
-          <div class="font-semibold">Snabbinfo</div>
-          <ul class="mt-2 list-disc pl-5 text-sm opacity-90 space-y-1">
-            <li>Gratis upphämtning i utvalda områden.</li>
-            <li>Swish‑utbetalning samma dag (normalt).</li>
-            <li>Saldokonto för enkel sparbonus.</li>
-          </ul>
-        </div>
-        <div class="rounded-3xl border bg-white/70 p-5">
-          <div class="font-semibold mb-1">Ditt saldokonto</div>
-          <div class="text-2xl font-bold" id="saldoSide">0 kr</div>
-          <button class="mt-3 rounded-2xl bg-stone-900 px-4 py-2 text-white" data-nav="konto">Öppna</button>
-        </div>
-      </aside>
-    </section>
-
-    <!-- THANKS -->
-    <section id="view-thanks" class="hidden mx-auto max-w-2xl text-center">
-      <h1 class="text-3xl font-semibold mb-2">Tack för din bokning! 🎉</h1>
-      <p class="opacity-80 mb-6">Vi har mottagit din förfrågan.</p>
-      <div class="rounded-3xl border bg-white/70 p-6 text-left" id="summaryBox"></div>
-      <div class="mt-6 flex justify-center gap-3">
-        <button class="rounded-2xl bg-stone-900 px-5 py-3 text-white" data-nav="home">Till startsidan</button>
-        <button class="rounded-2xl px-5 py-3 hover:bg-black/5" data-nav="konto">Mitt saldokonto</button>
       </div>
     </section>
 
-    <!-- KONTO -->
-    <section id="view-konto" class="hidden mx-auto max-w-2xl">
-      <h1 class="text-2xl font-semibold mb-4">Mitt saldokonto</h1>
-      <div class="rounded-3xl border bg-white/70 p-6">
-        <p class="text-lg">Saldo: <span class="font-semibold" id="saldoKonto">0 kr</span></p>
-        <div id="ordersList" class="mt-4 space-y-3"></div>
-        <div class="mt-4 flex flex-wrap gap-3">
-          <button id="downloadCsv" class="rounded-2xl px-4 py-2 border hover:bg-black/5">Ladda ner bokningar (CSV)</button>
-          <button id="clearData" class="rounded-2xl px-4 py-2 border hover:bg-black/5">Rensa demo‑data</button>
-        </div>
+    <!-- Info -->
+    <section id="info" class="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="rounded-3xl border bg-white/70 p-5">
+        <div class="text-lg font-semibold">1. Boka</div>
+        <div class="opacity-80">Fyll i adress & telefon (Swish).</div>
       </div>
-      <div class="mt-6 flex gap-3">
-        <button class="rounded-2xl bg-stone-900 px-5 py-3 text-white" data-nav="home">Till startsidan</button>
-        <button class="rounded-2xl px-5 py-3 hover:bg-black/5" data-nav="form">Ny bokning</button>
+      <div class="rounded-3xl border bg-white/70 p-5">
+        <div class="text-lg font-semibold">2. Vi hämtar</div>
+        <div class="opacity-80">Vi kontaktar dig vid behov & kommer på överenskommen tid.</div>
+      </div>
+      <div class="rounded-3xl border bg-white/70 p-5">
+        <div class="text-lg font-semibold">3. Registrering</div>
+        <div class="opacity-80">Panten räknas/registreras.</div>
+      </div>
+      <div class="rounded-3xl border bg-white/70 p-5">
+        <div class="text-lg font-semibold">4. Utbetalning</div>
+        <div class="opacity-80">Swish – smidigt och snabbt.</div>
       </div>
     </section>
-
   </main>
 
-  <!-- Footer -->
+  <!-- Toast -->
+  <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+    <div id="toastInner" class="rounded-2xl border bg-white shadow px-4 py-3 text-sm"></div>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal" class="fixed inset-0 z-40 hidden">
+    <div id="modalBackdrop" class="absolute inset-0 bg-black/40"></div>
+    <div class="relative z-10 mx-auto mt-24 w-[92%] max-w-xl rounded-3xl border bg-white p-6 shadow-lg">
+      <div class="flex items-center justify-between">
+        <h2 class="text-xl font-semibold">Boka upphämtning</h2>
+        <button id="closeModal" class="rounded-xl px-3 py-2 hover:bg-black/5">Stäng</button>
+      </div>
+
+      <form id="bookingForm" class="mt-4 space-y-5">
+        <label class="block">
+          <div class="mb-1 text-sm font-medium">Adress *</div>
+          <input name="adress" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30"
+                 placeholder="Ex. Storgatan 12, 123 45 Göteborg" required />
+        </label>
+
+        <label class="block">
+          <div class="mb-1 text-sm font-medium">Telefon (Swish) *</div>
+          <input name="telefon" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30"
+                 placeholder="07x-xx xx xxx eller +46…" required />
+        </label>
+
+        <div class="grid gap-4 md:grid-cols-2">
+          <label class="block">
+            <div class="mb-1 text-sm font-medium">Namn (valfritt)</div>
+            <input name="namn" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30"
+                   placeholder="För- och efternamn" />
+          </label>
+          <label class="block">
+            <div class="mb-1 text-sm font-medium">Önskad tid (valfritt)</div>
+            <input type="datetime-local" name="onskadHamtningsTid"
+                   class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" />
+          </label>
+        </div>
+
+        <p class="text-xs text-stone-600">
+          * Vi använder telefonnumret både för kontakt och Swish-utbetalning.
+        </p>
+
+        <div class="flex items-center gap-3">
+          <button id="submitBtn" type="submit"
+                  class="rounded-2xl bg-emerald-600 px-5 py-3 text-white shadow hover:bg-emerald-700 active:scale-[0.99]">
+            Skicka bokning
+          </button>
+          <button type="button" id="cancelBtn" class="rounded-2xl px-5 py-3 hover:bg-black/5">Avbryt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <footer class="border-t bg-white/50">
-    <div class="mx-auto max-w-5xl px-4 py-8 text-sm opacity-80">© <span id="year"></span> PantHämt • Integritetspolicy • Villkor</div>
+    <div class="mx-auto max-w-5xl px-4 py-8 text-sm opacity-80">© <span id="year"></span> PantHämt</div>
   </footer>
 
-  <button id="adminToggle" title="Admin">Admin</button>
-
   <script>
-    // ----------------- Config -----------------
-    const ADMIN_PIN = '1234'; // change me
+    // Helpers
+    const $ = (s, r=document) => r.querySelector(s);
+    const showToast = (msg, ok=true) => {
+      const wrap = $("#toast"), inner = $("#toastInner");
+      inner.textContent = msg;
+      inner.className = "rounded-2xl border px-4 py-3 text-sm shadow " + (ok ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900");
+      wrap.classList.remove("hidden");
+      setTimeout(() => wrap.classList.add("hidden"), 4000);
+    };
+    const openModal = () => { $("#modal").classList.remove("hidden"); document.body.classList.add("modal-open"); };
+    const closeModal = () => { $("#modal").classList.add("hidden"); document.body.classList.remove("modal-open"); };
 
-    // ----------------- State & helpers -----------------
-    const keySaldo = 'demo_saldo';
-    const keyOrders = 'demo_orders';
+    // Modal wiring
+    $("#openModal").addEventListener("click", openModal);
+    $("#closeModal").addEventListener("click", closeModal);
+    $("#cancelBtn").addEventListener("click", closeModal);
+    $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
 
-    function getSaldo() { const raw = localStorage.getItem(keySaldo); return raw ? Number(raw) : 0; }
-    function setSaldo(n) {
-      localStorage.setItem(keySaldo, String(n));
-      const kr = formatKr(n);
-      document.getElementById('saldoTop').textContent = kr;
-      document.getElementById('saldoText').textContent = kr;
-      document.getElementById('saldoSide').textContent = kr;
-      document.getElementById('saldoKonto').textContent = kr;
-    }
-
-    function addOrder(o) { const list = getOrders(); list.unshift(o); localStorage.setItem(keyOrders, JSON.stringify(list)); }
-    function getOrders() { try { return JSON.parse(localStorage.getItem(keyOrders) || '[]'); } catch { return []; } }
-
-    function formatKr(n) { try { return new Intl.NumberFormat('sv-SE',{style:'currency',currency:'SEK',maximumFractionDigits:0}).format(n); } catch { return n + ' kr'; } }
-    function formatDT(v) { try { return new Date(v).toLocaleString(); } catch { return v; } }
-
-    // ----------------- Routing -----------------
-    const views = ['home','form','thanks','konto'];
-    function show(route) {
-      views.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== route));
-      document.title = route === 'home' ? 'Pantupphämtning' : route === 'form' ? 'Boka upphämtning' : route === 'konto' ? 'Mitt saldo' : 'Tack!';
-      if (route === 'konto') { renderOrders(); wireKonto(); }
-    }
-    document.querySelectorAll('[data-nav]').forEach(btn => btn.addEventListener('click', () => show(btn.dataset.nav)));
-    document.querySelectorAll('[data-rullband="Upphämtning"]').forEach(btn => btn.addEventListener('click', () => show('form')));
-
-    // ----------------- Form logic -----------------
-    const form = document.getElementById('bookingForm');
-    const utbetalningSelect = document.getElementById('utbetalningSelect');
-    const swishField = document.getElementById('swishField');
-
-    utbetalningSelect.addEventListener('change', () => {
-      const isSwish = utbetalningSelect.value === 'swish';
-      swishField.classList.toggle('hidden', !isSwish);
-      document.getElementById('saldoInfo').classList.toggle('hidden', isSwish);
-    });
-
-    // default datetime: next full hour
+    // Defaults
+    $("#year").textContent = new Date().getFullYear();
     (function setDefaultDT(){
-      const input = form.elements['onskadHamtningsTid'];
+      const input = document.querySelector("input[name='onskadHamtningsTid']");
+      if (!input) return;
       const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
-      const pad = n => String(n).padStart(2,'0');
+      const pad = n => String(n).padStart(2,"0");
       input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     })();
 
-    form.addEventListener('submit', async (e) => {
+    // Simple validators
+    function validPhone(v){
+      if (!v) return false;
+      const trimmed = v.trim();
+      // Accept Swedish mobile patterns like 07… or E.164 +46…
+      return /^\+?\d[\d\s-]{6,}$/.test(trimmed);
+    }
+
+    // Submit
+    $("#bookingForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
+      const btn = $("#submitBtn");
+      const fd = new FormData(e.currentTarget);
+      const data = Object.fromEntries(fd.entries());
 
-      // validate
       const errs = [];
-      if (!data.namn) errs.push('Namn saknas');
-      if (!/^\s*07\d[\d\s-]{6,}\s*$/.test(data.telefon || '')) errs.push('Telefon (svenskt mobilnr) ogiltigt');
-      if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errs.push('E-postadress ogiltig');
-      if (!data.adress) errs.push('Adress saknas');
-      if (!data.postnummer) errs.push('Postnummer saknas');
-      if (!data.ort) errs.push('Ort saknas');
-      if (!data.antalPasar || Number(data.antalPasar) < 0) errs.push('Antal påsar ogiltigt');
-      if (!data.pantBelopp || Number(data.pantBelopp) < 0) errs.push('Pantbelopp ogiltigt');
-      if (!data.onskadHamtningsTid) errs.push('Önskad hämtning saknas');
-      if ((data.utbetalning === 'swish') && !/^\s*07\d[\d\s-]{6,}\s*$/.test(data.swish || '')) errs.push('Swish-nummer ogiltigt');
-      if (errs.length) { alert('Korrigera följande:\n\n- ' + errs.join('\n- ')); return; }
+      if (!data.adress) errs.push("Adress saknas");
+      if (!validPhone(data.telefon)) errs.push("Telefon ogiltigt (använd 07… eller +46…)");
+      if (errs.length){ showToast("Korrigera: " + errs.join(", "), false); return; }
 
-      // call backend (serverless function)
-      let serverId = null, serverTime = null, apiOk = false;
+      btn.disabled = true; btn.textContent = "Skickar…";
       try {
-        const resp = await fetch('/api/book', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        const resp = await fetch("/api/book", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify(data)
         });
-        const json = await resp.json();
-        apiOk = resp.ok && json && json.ok;
-        serverId = json.serverId || null; serverTime = json.serverTime || null;
-      } catch (e) { apiOk = false; }
-
-      const id = apiOk && serverId ? serverId : ('local_' + Math.random().toString(36).slice(2));
-      const createdAt = apiOk && serverTime ? serverTime : new Date().toISOString();
-
-      const pantBelopp = Number(data.pantBelopp || 0);
-      const beloppTillSaldo = data.utbetalning === 'saldo' ? pantBelopp : 0;
-      const order = { ...data, id, createdAt, status: 'new' };
-
-      addOrder(order);
-      if (beloppTillSaldo > 0) setSaldo(getSaldo() + beloppTillSaldo);
-
-      renderSummary(order);
-      show('thanks');
-      form.reset();
-      document.getElementById('saldoInfo').classList.toggle('hidden', data.utbetalning === 'swish');
-      swishField.classList.toggle('hidden', data.utbetalning !== 'swish');
-      document.getElementById('utbetalningSelect').value = 'saldo';
-      (function setDefaultDT(){
-        const input = form.elements['onskadHamtningsTid'];
-        const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
-        const pad = n => String(n).padStart(2,'0');
-        input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      })();
-
-      if (!apiOk) console.warn('API call failed; saved locally only');
-    });
-
-    // ----------------- Rendering helpers -----------------
-    function renderSummary(o){
-      const wrap = document.getElementById('summaryBox');
-      const kr = n => formatKr(Number(n||0));
-      wrap.innerHTML = `
-        <div class="space-y-2 text-sm">
-          ${row('Namn', o.namn)}
-          ${row('Telefon', o.telefon)}
-          ${o.email ? row('E-post', o.email) : ''}
-          ${row('Adress', `${o.adress}, ${o.postnummer} ${o.ort}`)}
-          ${o.portkod ? row('Portkod', o.portkod) : ''}
-          ${row('Antal påsar', o.antalPasar)}
-          ${row('Pant', `${o.pantTyp === 'exakt' ? 'Exakt' : 'Uppskattad'} • ${kr(o.pantBelopp)}`)}
-          ${row('Önskad hämtning', formatDT(o.onskadHamtningsTid))}
-          ${row('Utbetalning', o.utbetalning === 'swish' ? `Swish (${o.swish})` : 'Saldo på hemsidan')}
-        </div>`;
-    }
-
-    function renderOrders(){
-      const list = getOrders();
-      const box = document.getElementById('ordersList');
-      if (!list.length) { box.innerHTML = '<p class="mt-4 text-sm opacity-80">Inga bokningar ännu.</p>'; return; }
-      box.innerHTML = '<div class="text-sm opacity-80">Senaste bokningar</div>' +
-        list.map(o => `
-          <div class="rounded-2xl border bg-white/70 p-4 text-sm" data-id="${o.id}">
-            <div class="font-medium mb-1">${o.namn} • ${formatDT(o.onskadHamtningsTid)}</div>
-            <div class="opacity-80">${o.adress}, ${o.postnummer} ${o.ort} • ${o.antalPasar} påsar • ${(o.pantTyp === 'exakt' ? 'Exakt' : 'Uppskattad')} ${formatKr(Number(o.pantBelopp||0))} • ${(o.utbetalning === 'saldo' ? 'Saldo' : 'Swish')}</div>
-            <div class="mt-2 text-xs inline-flex items-center gap-2 px-2 py-1 rounded-full ${o.status==='registered' ? 'bg-emerald-100' : 'bg-black/5'}" id="status_${o.id}">
-              ${o.status==='registered' ? `Registrerad ${formatDT(o.registeredAt)}` : 'Ej registrerad'}
-            </div>
-            <div class="mt-2" id="ctl_${o.id}"></div>
-          </div>
-        `).join('');
-      enhanceOrdersList();
-    }
-
-    function row(label, value){ return `<div class=\"grid grid-cols-3 gap-4\"><div class=\"opacity-70\">${label}</div><div class=\"col-span-2 font-medium\">${value}</div></div>`; }
-
-    function wireKonto(){
-      const dl = document.getElementById('downloadCsv');
-      const clr = document.getElementById('clearData');
-      if (dl) dl.onclick = () => downloadCsv();
-      if (clr) clr.onclick = () => { localStorage.removeItem(keyOrders); localStorage.removeItem(keySaldo); setSaldo(0); renderOrders(); };
-    }
-
-    function downloadCsv(){
-      const list = getOrders();
-      if (!list.length) { alert('Inga bokningar att exportera.'); return; }
-      const headers = ['id','createdAt','namn','telefon','email','adress','postnummer','ort','portkod','antalPasar','pantTyp','pantBelopp','onskadHamtningsTid','utbetalning','swish','status','registeredAt'];
-      const rows = [headers.join(',')].concat(list.map(o => headers.map(h => `"${String(o[h] ?? '').replaceAll('"','""')}"`).join(',')));
-      const blob = new Blob(["\ufeff" + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'bokningar.csv';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    }
-
-    // ----------------- Admin mode (inlined) -----------------
-    let adminActive = false;
-    document.getElementById('adminToggle').addEventListener('click', () => {
-      if (!adminActive){
-        const pin = prompt('Ange admin‑PIN');
-        if (pin === ADMIN_PIN){ adminActive = true; document.getElementById('adminToggle').textContent = 'Admin ✓'; renderOrders(); }
-        else if (pin !== null) alert('Fel PIN');
-      } else { adminActive = false; document.getElementById('adminToggle').textContent = 'Admin'; renderOrders(); }
-    });
-
-    function enhanceOrdersList(){
-      const list = getOrders();
-      const box = document.getElementById('ordersList');
-      const cards = Array.from(box.querySelectorAll('[data-id]'));
-      cards.forEach(card => {
-        const id = card.getAttribute('data-id');
-        const o = list.find(x => x.id === id);
-        const ctl = card.querySelector('#ctl_' + id);
-        ctl.innerHTML = '';
-        if (!adminActive) return;
-        const btn = document.createElement('button');
-        btn.className = 'rounded-2xl px-3 py-2 border hover:bg-black/5 text-sm';
-        if (o.status !== 'registered'){
-          btn.textContent = 'Markera som registrerad';
-          btn.onclick = () => markRegistered(id);
+        const json = await resp.json().catch(()=>({}));
+        if (resp.ok && json && json.ok){
+          showToast("Bokningen är skickad! Vi hör av oss vid behov.", true);
+          e.currentTarget.reset();
+          closeModal();
+        } else if (resp.status === 429) {
+          showToast("För många försök – vänta en liten stund och prova igen.", false);
         } else {
-          btn.textContent = 'Ångra registrering';
-          btn.onclick = () => unmarkRegistered(id);
+          showToast(json && json.error ? "Fel: " + json.error : "Något gick fel. Försök igen.", false);
         }
-        ctl.appendChild(btn);
-      });
-    }
-
-    function markRegistered(id){
-      const list = getOrders();
-      const i = list.findIndex(o => o.id === id); if (i === -1) return;
-      list[i].status = 'registered'; list[i].registeredAt = new Date().toISOString();
-      localStorage.setItem(keyOrders, JSON.stringify(list));
-      renderOrders();
-    }
-    function unmarkRegistered(id){
-      const list = getOrders();
-      const i = list.findIndex(o => o.id === id); if (i === -1) return;
-      list[i].status = 'new'; delete list[i].registeredAt;
-      localStorage.setItem(keyOrders, JSON.stringify(list));
-      renderOrders();
-    }
-
-    // ----------------- Init -----------------
-    document.getElementById('year').textContent = new Date().getFullYear();
-    setSaldo(getSaldo());
-    show('home');
+      } catch (err) {
+        showToast("Kunde inte kontakta servern. Försök igen.", false);
+      } finally {
+        btn.disabled = false; btn.textContent = "Skicka bokning";
+      }
+    });
   </script>
 </body>
 </html>
