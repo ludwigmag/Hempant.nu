@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pantupphämtning</title>
-  <meta name="description" content="Boka upphämtning av pantpåsar – fyll i adress och telefon (Swish) så får vi din bokning via Discord-notis. Enkelt och hemtrevligt.">
+  <meta name="description" content="Boka upphämtning av pantpåsar – fyll i adress, telefon (Swish) och två möjliga tider. Vi får din bokning via Discord-notis.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2310b981'/%3E%3Ctext x='50' y='58' text-anchor='middle' font-size='54' fill='white' font-family='Segoe UI,Roboto,Helvetica,Arial,sans-serif'%3EP%3C/text%3E%3C/svg%3E"/>
   <link rel="preload" as="image" href="hempant_1.png">
   <script src="https://cdn.tailwindcss.com"></script>
@@ -27,7 +27,7 @@
 
   <!-- Hero -->
   <main class="mx-auto max-w-5xl px-4 pt-12 pb-24">
-    <section class="text-center">
+    <section class="text-center" id="view-hero">
       <h1 class="text-3xl md:text-4xl font-semibold leading-tight">Hemtrevlig pantservice – vi hämtar där du bor</h1>
       <p class="mt-3 opacity-80">Tryck på knappen nedan för att boka upphämtning. Vi får din bokning via Discord-notis.</p>
 
@@ -58,16 +58,27 @@
         <div class="opacity-80">Fyll i adress & telefon (Swish).</div>
       </div>
       <div class="rounded-3xl border bg-white/70 p-5">
-        <div class="text-lg font-semibold">2. Vi hämtar</div>
-        <div class="opacity-80">Vi kontaktar dig vid behov & kommer på överenskommen tid.</div>
+        <div class="text-lg font-semibold">2. Välj tider</div>
+        <div class="opacity-80">Välj två tider minst 1 timme emellan.</div>
       </div>
       <div class="rounded-3xl border bg-white/70 p-5">
-        <div class="text-lg font-semibold">3. Registrering</div>
-        <div class="opacity-80">Panten räknas/registreras.</div>
+        <div class="text-lg font-semibold">3. Vi hämtar</div>
+        <div class="opacity-80">Vi försöker först tid 1, annars tid 2.</div>
       </div>
       <div class="rounded-3xl border bg-white/70 p-5">
         <div class="text-lg font-semibold">4. Utbetalning</div>
         <div class="opacity-80">Swish – smidigt och snabbt.</div>
+      </div>
+    </section>
+
+    <!-- Confirmation view -->
+    <section id="view-confirm" class="hidden mx-auto max-w-3xl mt-16">
+      <h2 class="text-2xl font-semibold mb-2">Tack! Din bokning är skickad. 🎉</h2>
+      <p class="opacity-80 mb-6">Vi återkommer vid behov. Här är din bekräftelse:</p>
+      <div id="confirmDetails" class="rounded-3xl border bg-white/70 p-6 text-sm"></div>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button id="newBooking" class="rounded-2xl bg-stone-900 px-5 py-3 text-white">Gör en ny bokning</button>
+        <button id="goHome" class="rounded-2xl px-5 py-3 hover:bg-black/5">Till startsidan</button>
       </div>
     </section>
   </main>
@@ -105,15 +116,28 @@
             <input name="namn" class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30"
                    placeholder="För- och efternamn" />
           </label>
-          <label class="block">
-            <div class="mb-1 text-sm font-medium">Önskad tid (valfritt)</div>
-            <input type="datetime-local" name="onskadHamtningsTid"
-                   class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" />
-          </label>
+          <div class="hidden"></div>
+        </div>
+
+        <div class="rounded-2xl border bg-amber-50/70 p-4 text-sm">
+          <div class="font-medium mb-1">Välj två upphämtningstider *</div>
+          <p class="opacity-80">Ange två förslag som passar dig. Vi siktar på den första och använder den andra om det skulle krocka. <strong>Det måste vara minst 1 timme mellan tiderna.</strong></p>
+          <div class="grid gap-4 md:grid-cols-2 mt-3">
+            <label class="block">
+              <div class="mb-1 text-xs font-medium">Tid 1 *</div>
+              <input type="datetime-local" name="tid1"
+                     class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" required />
+            </label>
+            <label class="block">
+              <div class="mb-1 text-xs font-medium">Tid 2 *</div>
+              <input type="datetime-local" name="tid2"
+                     class="w-full rounded-2xl border bg-white/80 px-4 py-3 outline-none focus:ring ring-emerald-600/30" required />
+            </label>
+          </div>
         </div>
 
         <p class="text-xs text-stone-600">
-          * Vi använder telefonnumret både för kontakt och Swish-utbetalning.
+          * Telefonnumret används både för kontakt och Swish-utbetalning.
         </p>
 
         <div class="flex items-center gap-3">
@@ -132,118 +156,190 @@
   </footer>
 
   <script>
-  // Tiny helpers
-  const $ = (s, r=document) => r.querySelector(s);
-  const showToast = (msg, ok=true) => {
-    const wrap = $("#toast"), inner = $("#toastInner");
-    inner.textContent = msg;
-    inner.className = "rounded-2xl border px-4 py-3 text-sm shadow " + (ok ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900");
-    wrap.classList.remove("hidden");
-    setTimeout(() => wrap.classList.add("hidden"), 4000);
-  };
+    // Tiny helpers
+    const $ = (s, r=document) => r.querySelector(s);
+    const showToast = (msg, ok=true) => {
+      const wrap = $("#toast"), inner = $("#toastInner");
+      inner.textContent = msg;
+      inner.className = "rounded-2xl border px-4 py-3 text-sm shadow " + (ok ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900");
+      wrap.classList.remove("hidden");
+      setTimeout(() => wrap.classList.add("hidden"), 4000);
+    };
+    const formatDT = (v) => {
+      try {
+        const d = new Date(v);
+        return d.toLocaleString("sv-SE", { dateStyle: "medium", timeStyle: "short" });
+      } catch { return v; }
+    };
 
-  // Modal controls + focus trap (unchanged)
-  const openModal = () => {
-    $("#modal").classList.remove("hidden");
-    document.body.classList.add("modal-open");
-    const first = document.querySelector("#bookingForm input[name='adress']");
-    setTimeout(() => first && first.focus(), 0);
-    document.addEventListener("keydown", trap);
-  };
-  const closeModal = () => {
-    $("#modal").classList.add("hidden");
-    document.body.classList.remove("modal-open");
-    document.removeEventListener("keydown", trap);
-    $("#openModal").focus();
-  };
-  $("#openModal").addEventListener("click", openModal);
-  $("#closeModal").addEventListener("click", closeModal);
-  $("#cancelBtn").addEventListener("click", closeModal);
-  $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
-  function trap(e){
-    if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
-    if (e.key !== "Tab") return;
-    const focusables = Array.from(document.querySelectorAll("#modal button, #modal input, #modal select, #modal textarea, #modal [tabindex]:not([tabindex='-1'])"))
-      .filter(el => !el.hasAttribute("disabled"));
-    if (!focusables.length) return;
-    const first = focusables[0], last = focusables[focusables.length - 1];
-    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
-    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
-  }
+    // Modal controls + focus trap
+    const openModal = () => {
+      $("#modal").classList.remove("hidden");
+      document.body.classList.add("modal-open");
+      const first = document.querySelector("#bookingForm input[name='adress']");
+      setTimeout(() => first && first.focus(), 0);
+      document.addEventListener("keydown", trap);
+    };
+    const closeModal = () => {
+      $("#modal").classList.add("hidden");
+      document.body.classList.remove("modal-open");
+      document.removeEventListener("keydown", trap);
+      $("#openModal").focus();
+    };
+    $("#openModal").addEventListener("click", openModal);
+    $("#closeModal").addEventListener("click", closeModal);
+    $("#cancelBtn").addEventListener("click", closeModal);
+    $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
+    function trap(e){
+      if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+      if (e.key !== "Tab") return;
+      const focusables = Array.from(document.querySelectorAll("#modal button, #modal input, #modal select, #modal textarea, #modal [tabindex]:not([tabindex='-1'])"))
+        .filter(el => !el.hasAttribute("disabled"));
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
 
-  // Footer year + default datetime
-  $("#year").textContent = new Date().getFullYear();
-  (function setDefaultDT(){
-    const input = document.querySelector("input[name='onskadHamtningsTid']");
-    if (!input) return;
-    const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
-    const pad = n => String(n).padStart(2,"0");
-    input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  })();
+    // Footer year + default datetimes
+    $("#year").textContent = new Date().getFullYear();
+    (function setDefaultDTs(){
+      const t1 = document.querySelector("input[name='tid1']");
+      const t2 = document.querySelector("input[name='tid2']");
+      const pad = n => String(n).padStart(2,"0");
+      const base = new Date(); base.setMinutes(0,0,0); base.setHours(base.getHours()+1);
+      const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      if (t1 && t2) {
+        const d1 = new Date(base);
+        const d2 = new Date(base); d2.setHours(d2.getHours()+2); // default 2h after
+        t1.value = fmt(d1);
+        t2.value = fmt(d2);
+      }
+    })();
 
-  // Swedish mobile validator (07… or +46 7…)
-  function validPhone(v){
-    if (!v) return false;
-    const d = String(v).trim().replace(/[^\d+]/g, '');
-    const reLocal = /^0?7[02369]\d{7}$/;   // 07XXXXXXXX
-    const reE164  = /^\+467[02369]\d{7}$/; // +467XXXXXXXX
-    return reLocal.test(d) || reE164.test(d);
-  }
+    // Swedish mobile validator (07… or +46 7…)
+    function validPhone(v){
+      if (!v) return false;
+      const d = String(v).trim().replace(/[^\d+]/g, '');
+      const reLocal = /^0?7[02369]\d{7}$/;   // 07XXXXXXXX
+      const reE164  = /^\+467[02369]\d{7}$/; // +467XXXXXXXX
+      return reLocal.test(d) || reE164.test(d);
+    }
+    function validTimePair(a, b){
+      if (!a || !b) return false;
+      const t1 = new Date(a).getTime(), t2 = new Date(b).getTime();
+      if (isNaN(t1) || isNaN(t2)) return false;
+      const diff = Math.abs(t2 - t1);
+      return diff >= 60 * 60 * 1000; // >= 1 hour
+    }
 
-  // Submit handler with narrow catch (only network errors trigger the "server" toast)
-  document.getElementById("bookingForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById("submitBtn");
-    const fd = new FormData(e.currentTarget);
-    const data = Object.fromEntries(fd.entries());
+    // Show confirmation "page"
+    function showConfirm(summary){
+      // Fill details
+      const box = $("#confirmDetails");
+      const row = (label, value) => `<div class="grid grid-cols-3 gap-4"><div class="opacity-70">${label}</div><div class="col-span-2 font-medium break-words">${value}</div></div>`;
+      box.innerHTML = [
+        summary.namn ? row("Namn", summary.namn) : "",
+        row("Telefon (Swish)", summary.telefon),
+        row("Adress", summary.adress),
+        row("Tid 1", formatDT(summary.tid1)),
+        row("Tid 2", formatDT(summary.tid2))
+      ].join("");
 
-    const errs = [];
-    if (!data.adress) errs.push("Adress saknas");
-    if (!validPhone(data.telefon)) errs.push("Telefon ogiltigt (använd 07… eller +46…)");
-    if (errs.length){ showToast("Korrigera: " + errs.join(", "), false); return; }
+      // Hide modal, show confirm section
+      try { closeModal(); } catch {}
+      $("#view-confirm").classList.remove("hidden");
+      // Scroll into view for "new page" feel
+      document.getElementById("view-confirm").scrollIntoView({ behavior: "smooth", block: "start" });
+      // Update URL hash
+      try { history.replaceState(null, "", "#bekraftelse"); } catch {}
+    }
 
-    btn.disabled = true; btn.textContent = "Skickar…";
+    // Buttons in confirmation view
+    $("#newBooking").addEventListener("click", () => {
+      // reset defaults and reopen modal
+      const form = document.getElementById("bookingForm");
+      form.reset();
+      (function setDefaultDTs(){
+        const t1 = document.querySelector("input[name='tid1']");
+        const t2 = document.querySelector("input[name='tid2']");
+        const pad = n => String(n).padStart(2,"0");
+        const base = new Date(); base.setMinutes(0,0,0); base.setHours(base.getHours()+1);
+        const fmt = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        if (t1 && t2) {
+          const d1 = new Date(base);
+          const d2 = new Date(base); d2.setHours(d2.getHours()+2);
+          t1.value = fmt(d1); t2.value = fmt(d2);
+        }
+      })();
+      openModal();
+    });
+    $("#goHome").addEventListener("click", () => {
+      try { history.replaceState(null, "", "#"); } catch {}
+      document.getElementById("view-hero").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
 
-    // 1) Do the network call with its own try/catch
-    let resp;
-    try {
-      resp = await fetch("/api/book", {
-        method: "POST",
-        headers: { "Content-Type":"application/json" },
-        body: JSON.stringify(data)
-      });
-    } catch (err) {
-      console.error("Network error:", err);
-      showToast("Kunde inte kontakta servern. Försök igen.", false);
+    // Submit handler with narrow catch (only network errors trigger the "server" toast)
+    document.getElementById("bookingForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById("submitBtn");
+      const fd = new FormData(e.currentTarget);
+      const data = Object.fromEntries(fd.entries());
+
+      const errs = [];
+      if (!data.adress) errs.push("Adress saknas");
+      if (!validPhone(data.telefon)) errs.push("Telefon ogiltigt (använd 07… eller +46…)");
+      if (!data.tid1 || !data.tid2) errs.push("Båda tiderna måste anges");
+      if (data.tid1 && data.tid2 && !validTimePair(data.tid1, data.tid2)) errs.push("Det måste vara minst 1 timme mellan tiderna");
+      if (errs.length){ showToast("Korrigera: " + errs.join(", "), false); return; }
+
+      btn.disabled = true; btn.textContent = "Skickar…";
+
+      // 1) Do the network call with its own try/catch
+      let resp;
+      try {
+        resp = await fetch("/api/book", {
+          method: "POST",
+          headers: { "Content-Type":"application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (err) {
+        console.error("Network error:", err);
+        showToast("Kunde inte kontakta servern. Försök igen.", false);
+        btn.disabled = false; btn.textContent = "Skicka bokning";
+        return;
+      }
+
+      // 2) Decide success based on HTTP status (any 2xx = success)
+      const is2xx = resp.status >= 200 && resp.status < 300;
+
+      // Parse JSON if present but don't require it
+      let json = null;
+      try {
+        const text = await resp.text();
+        json = text ? JSON.parse(text) : null;
+      } catch { /* ignore parse errors */ }
+
+      if (is2xx && (!json || json.ok !== false)) {
+        // Optional toast, but main change is the confirmation page:
+        // showToast("Bokningen är skickad! Vi hör av oss vid behov.", true);
+        showConfirm({
+          namn: (data.namn || "").trim(),
+          telefon: data.telefon,
+          adress: data.adress,
+          tid1: data.tid1,
+          tid2: data.tid2
+        });
+        e.currentTarget.reset();
+      } else if (resp.status === 429) {
+        showToast("För många försök – vänta en liten stund och prova igen.", false);
+      } else {
+        const msg = json && json.error ? ("Fel: " + json.error) : "Något gick fel. Försök igen.";
+        showToast(msg, false);
+      }
+
       btn.disabled = false; btn.textContent = "Skicka bokning";
-      return;
-    }
-
-    // 2) Decide success based on HTTP status (any 2xx = success)
-    const is2xx = resp.status >= 200 && resp.status < 300;
-
-    // Try to parse JSON, but don't fail UI if body is empty
-    let json = null;
-    try {
-      const text = await resp.text();               // avoids errors on 204/empty
-      json = text ? JSON.parse(text) : null;
-    } catch (err) {
-      // harmless: keep json = null
-      console.debug("Response had no/invalid JSON (ok for 204/empty).");
-    }
-
-    if (is2xx && (!json || json.ok !== false)) {
-      // Success path — show toast, reset, close modal
-      showToast("Bokningen är skickad! Vi hör av oss vid behov.", true);
-      e.currentTarget.reset();
-      try { closeModal(); } catch (err) { console.warn("closeModal failed:", err); }
-    } else if (resp.status === 429) {
-      showToast("För många försök – vänta en liten stund och prova igen.", false);
-    } else {
-      const msg = json && json.error ? ("Fel: " + json.error) : "Något gick fel. Försök igen.";
-      showToast(msg, false);
-    }
-
-    btn.disabled = false; btn.textContent = "Skicka bokning";
-  });
-</script>
+    });
+  </script>
+</body>
+</html>
