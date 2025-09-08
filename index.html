@@ -6,6 +6,8 @@
   <title>Pantupphämtning</title>
   <meta name="description" content="Boka upphämtning av pantpåsar – fyll i adress och telefon (Swish) så får vi din bokning via SMS. Enkelt och hemtrevligt.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2310b981'/%3E%3Ctext x='50' y='58' text-anchor='middle' font-size='54' fill='white' font-family='Segoe UI,Roboto,Helvetica,Arial,sans-serif'%3EP%3C/text%3E%3C/svg%3E"/>
+  <!-- Optional: Preload hero image for slightly snappier paint -->
+  <link rel="preload" as="image" href="hempant_1.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
@@ -21,8 +23,7 @@
         <div class="h-9 w-9 rounded-xl bg-emerald-600"></div>
         <span class="font-semibold">HEMPANT</span>
       </div>
-      <!-- (nav intentionally empty per cleanup) -->
-      <nav class="flex items-center gap-2 text-sm"></nav>
+      <!-- nav removed for now -->
     </div>
   </header>
 
@@ -38,20 +39,21 @@
         HÄMTA MIN PANT – BOKA!
       </button>
 
-    <figure class="mx-auto mt-10 max-w-3xl">
-      <img
-        src="hempant_1.png"
-        alt="HEMPANT hämtar pantpåsar vid dörren – bokning via SMS"
-        class="w-[95%] md:w-[90%] mx-auto rounded-3xl border shadow-sm"
-        loading="lazy"
-        width="1600" height="900"
-      />
-    </figure>
-
-
+      <!-- Hero image -->
+      <figure class="mx-auto mt-10 max-w-3xl">
+        <img
+          src="hempant_1.png"
+          alt="HEMPANT hämtar pantpåsar vid dörren – bokning via SMS"
+          class="w-[95%] md:w-[90%] mx-auto rounded-3xl border shadow-sm"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
+          width="1600" height="900"
+        />
+      </figure>
     </section>
 
-    <!-- Simple 4-step info (kept, no “Välj i rullbandsmenyn”) -->
+    <!-- Simple 4-step info -->
     <section class="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div class="rounded-3xl border bg-white/70 p-5">
         <div class="text-lg font-semibold">1. Boka</div>
@@ -78,12 +80,12 @@
   </div>
 
   <!-- Modal -->
-  <div id="modal" class="fixed inset-0 z-40 hidden">
+  <div id="modal" class="fixed inset-0 z-40 hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div id="modalBackdrop" class="absolute inset-0 bg-black/40"></div>
-    <div class="relative z-10 mx-auto mt-24 w-[92%] max-w-xl rounded-3xl border bg-white p-6 shadow-lg">
+    <div class="relative z-10 mx-auto mt-24 w-[92%] max-w-xl rounded-3xl border bg-white p-6 shadow-lg" tabindex="-1">
       <div class="flex items-center justify-between">
-        <h2 class="text-xl font-semibold">Boka upphämtning</h2>
-        <button id="closeModal" class="rounded-xl px-3 py-2 hover:bg-black/5">Stäng</button>
+        <h2 id="modalTitle" class="text-xl font-semibold">Boka upphämtning</h2>
+        <button id="closeModal" class="rounded-xl px-3 py-2 hover:bg-black/5" aria-label="Stäng dialog">Stäng</button>
       </div>
 
       <form id="bookingForm" class="mt-4 space-y-5">
@@ -141,14 +143,39 @@
       wrap.classList.remove("hidden");
       setTimeout(() => wrap.classList.add("hidden"), 4000);
     };
-    const openModal = () => { $("#modal").classList.remove("hidden"); document.body.classList.add("modal-open"); };
-    const closeModal = () => { $("#modal").classList.add("hidden"); document.body.classList.remove("modal-open"); };
+    const openModal = () => {
+      $("#modal").classList.remove("hidden");
+      document.body.classList.add("modal-open");
+      // focus first field
+      const first = document.querySelector("#bookingForm input[name='adress']");
+      setTimeout(() => first && first.focus(), 0);
+      // start focus trap
+      document.addEventListener("keydown", trap);
+    };
+    const closeModal = () => {
+      $("#modal").classList.add("hidden");
+      document.body.classList.remove("modal-open");
+      document.removeEventListener("keydown", trap);
+      $("#openModal").focus();
+    };
 
     // Modal wiring
     $("#openModal").addEventListener("click", openModal);
     $("#closeModal").addEventListener("click", closeModal);
     $("#cancelBtn").addEventListener("click", closeModal);
     $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
+
+    // Escape to close + very light focus trap
+    function trap(e){
+      if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+      if (e.key !== "Tab") return;
+      const focusables = Array.from(document.querySelectorAll("#modal button, #modal input, #modal select, #modal textarea, #modal [tabindex]:not([tabindex='-1'])"))
+        .filter(el => !el.hasAttribute("disabled"));
+      if (!focusables.length) return;
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
 
     // Defaults
     $("#year").textContent = new Date().getFullYear();
