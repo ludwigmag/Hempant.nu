@@ -1,4 +1,5 @@
 // /api/book.js — Send owner notifications to Discord via Webhook (no SMS/email accounts)
+// Always returns JSON { ok: true } on success so the frontend can rely on it.
 
 export default async function handler(req, res) {
   // CORS
@@ -53,17 +54,27 @@ export default async function handler(req, res) {
   const hook = process.env.DISCORD_WEBHOOK_URL || "";
   if (!hook) return res.status(500).json({ ok: false, error: "DISCORD_WEBHOOK_URL missing" });
 
-  const resp = await fetch(hook, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ content }) // simple text; could use embeds too
-  });
-
-  if (!(resp.ok || resp.status === 204)) {
-    return res.status(502).json({ ok: false, error: "Notification failed" });
+  let ok = false;
+  try {
+    const resp = await fetch(hook, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content })
+    });
+    // Discord returns 204 No Content on success; treat any 2xx as success:
+    ok = resp.status >= 200 && resp.status < 300;
+  } catch {
+    ok = false;
   }
 
-  return res.status(200).json({ ok: true, serverId: uid(), serverTime: new Date().toISOString() });
+  if (!ok) return res.status(502).json({ ok: false, error: "Notification failed" });
+
+  // Always return JSON body on success
+  return res.status(200).json({
+    ok: true,
+    serverId: uid(),
+    serverTime: new Date().toISOString()
+  });
 }
 
 // ----- helpers -----
