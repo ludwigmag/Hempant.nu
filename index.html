@@ -132,104 +132,118 @@
   </footer>
 
   <script>
-    // Tiny helpers
-    const $ = (s, r=document) => r.querySelector(s);
-    const showToast = (msg, ok=true) => {
-      const wrap = $("#toast"), inner = $("#toastInner");
-      inner.textContent = msg;
-      inner.className = "rounded-2xl border px-4 py-3 text-sm shadow " + (ok ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900");
-      wrap.classList.remove("hidden");
-      setTimeout(() => wrap.classList.add("hidden"), 4000);
-    };
+  // Tiny helpers
+  const $ = (s, r=document) => r.querySelector(s);
+  const showToast = (msg, ok=true) => {
+    const wrap = $("#toast"), inner = $("#toastInner");
+    inner.textContent = msg;
+    inner.className = "rounded-2xl border px-4 py-3 text-sm shadow " + (ok ? "bg-emerald-50 border-emerald-300 text-emerald-900" : "bg-rose-50 border-rose-300 text-rose-900");
+    wrap.classList.remove("hidden");
+    setTimeout(() => wrap.classList.add("hidden"), 4000);
+  };
 
-    // Modal controls + focus trap
-    const openModal = () => {
-      $("#modal").classList.remove("hidden");
-      document.body.classList.add("modal-open");
-      const first = document.querySelector("#bookingForm input[name='adress']");
-      setTimeout(() => first && first.focus(), 0);
-      document.addEventListener("keydown", trap);
-    };
-    const closeModal = () => {
-      $("#modal").classList.add("hidden");
-      document.body.classList.remove("modal-open");
-      document.removeEventListener("keydown", trap);
-      $("#openModal").focus();
-    };
-    $("#openModal").addEventListener("click", openModal);
-    $("#closeModal").addEventListener("click", closeModal);
-    $("#cancelBtn").addEventListener("click", closeModal);
-    $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
-    function trap(e){
-      if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
-      if (e.key !== "Tab") return;
-      const focusables = Array.from(document.querySelectorAll("#modal button, #modal input, #modal select, #modal textarea, #modal [tabindex]:not([tabindex='-1'])"))
-        .filter(el => !el.hasAttribute("disabled"));
-      if (!focusables.length) return;
-      const first = focusables[0], last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
-      else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  // Modal controls + focus trap (unchanged)
+  const openModal = () => {
+    $("#modal").classList.remove("hidden");
+    document.body.classList.add("modal-open");
+    const first = document.querySelector("#bookingForm input[name='adress']");
+    setTimeout(() => first && first.focus(), 0);
+    document.addEventListener("keydown", trap);
+  };
+  const closeModal = () => {
+    $("#modal").classList.add("hidden");
+    document.body.classList.remove("modal-open");
+    document.removeEventListener("keydown", trap);
+    $("#openModal").focus();
+  };
+  $("#openModal").addEventListener("click", openModal);
+  $("#closeModal").addEventListener("click", closeModal);
+  $("#cancelBtn").addEventListener("click", closeModal);
+  $("#modalBackdrop").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeModal(); });
+  function trap(e){
+    if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }
+    if (e.key !== "Tab") return;
+    const focusables = Array.from(document.querySelectorAll("#modal button, #modal input, #modal select, #modal textarea, #modal [tabindex]:not([tabindex='-1'])"))
+      .filter(el => !el.hasAttribute("disabled"));
+    if (!focusables.length) return;
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+  }
+
+  // Footer year + default datetime
+  $("#year").textContent = new Date().getFullYear();
+  (function setDefaultDT(){
+    const input = document.querySelector("input[name='onskadHamtningsTid']");
+    if (!input) return;
+    const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
+    const pad = n => String(n).padStart(2,"0");
+    input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  })();
+
+  // Swedish mobile validator (07… or +46 7…)
+  function validPhone(v){
+    if (!v) return false;
+    const d = String(v).trim().replace(/[^\d+]/g, '');
+    const reLocal = /^0?7[02369]\d{7}$/;   // 07XXXXXXXX
+    const reE164  = /^\+467[02369]\d{7}$/; // +467XXXXXXXX
+    return reLocal.test(d) || reE164.test(d);
+  }
+
+  // Submit handler with narrow catch (only network errors trigger the "server" toast)
+  document.getElementById("bookingForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById("submitBtn");
+    const fd = new FormData(e.currentTarget);
+    const data = Object.fromEntries(fd.entries());
+
+    const errs = [];
+    if (!data.adress) errs.push("Adress saknas");
+    if (!validPhone(data.telefon)) errs.push("Telefon ogiltigt (använd 07… eller +46…)");
+    if (errs.length){ showToast("Korrigera: " + errs.join(", "), false); return; }
+
+    btn.disabled = true; btn.textContent = "Skickar…";
+
+    // 1) Do the network call with its own try/catch
+    let resp;
+    try {
+      resp = await fetch("/api/book", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify(data)
+      });
+    } catch (err) {
+      console.error("Network error:", err);
+      showToast("Kunde inte kontakta servern. Försök igen.", false);
+      btn.disabled = false; btn.textContent = "Skicka bokning";
+      return;
     }
 
-    // Footer year + default datetime
-    $("#year").textContent = new Date().getFullYear();
-    (function setDefaultDT(){
-      const input = document.querySelector("input[name='onskadHamtningsTid']");
-      if (!input) return;
-      const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
-      const pad = n => String(n).padStart(2,"0");
-      input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    })();
+    // 2) Decide success based on HTTP status (any 2xx = success)
+    const is2xx = resp.status >= 200 && resp.status < 300;
 
-    // Swedish mobile validator (07… or +46 7…)
-    function validPhone(v){
-      if (!v) return false;
-      const d = String(v).trim().replace(/[^\d+]/g, '');
-      const reLocal = /^0?7[02369]\d{7}$/;   // 07XXXXXXXX
-      const reE164  = /^\+467[02369]\d{7}$/; // +467XXXXXXXX
-      return reLocal.test(d) || reE164.test(d);
+    // Try to parse JSON, but don't fail UI if body is empty
+    let json = null;
+    try {
+      const text = await resp.text();               // avoids errors on 204/empty
+      json = text ? JSON.parse(text) : null;
+    } catch (err) {
+      // harmless: keep json = null
+      console.debug("Response had no/invalid JSON (ok for 204/empty).");
     }
 
-    // Submit handler with robust success detection
-    document.getElementById("bookingForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("submitBtn");
-      const fd = new FormData(e.currentTarget);
-      const data = Object.fromEntries(fd.entries());
+    if (is2xx && (!json || json.ok !== false)) {
+      // Success path — show toast, reset, close modal
+      showToast("Bokningen är skickad! Vi hör av oss vid behov.", true);
+      e.currentTarget.reset();
+      try { closeModal(); } catch (err) { console.warn("closeModal failed:", err); }
+    } else if (resp.status === 429) {
+      showToast("För många försök – vänta en liten stund och prova igen.", false);
+    } else {
+      const msg = json && json.error ? ("Fel: " + json.error) : "Något gick fel. Försök igen.";
+      showToast(msg, false);
+    }
 
-      const errs = [];
-      if (!data.adress) errs.push("Adress saknas");
-      if (!validPhone(data.telefon)) errs.push("Telefon ogiltigt (använd 07… eller +46…)");
-      if (errs.length){ showToast("Korrigera: " + errs.join(", "), false); return; }
-
-      btn.disabled = true; btn.textContent = "Skickar…";
-      try {
-        const resp = await fetch("/api/book", {
-          method: "POST",
-          headers: { "Content-Type":"application/json" },
-          body: JSON.stringify(data)
-        });
-
-        // Treat any 2xx as success, even if JSON parsing fails
-        const is2xx = resp.status >= 200 && resp.status < 300;
-        let json = null;
-        try { json = await resp.json(); } catch { /* ignore parse errors */ }
-
-        if (is2xx && (!json || json.ok !== false)) {
-          showToast("Bokningen är skickad! Vi hör av oss vid behov.", true);
-          e.currentTarget.reset();
-          closeModal();
-        } else if (resp.status === 429) {
-          showToast("För många försök – vänta en liten stund och prova igen.", false);
-        } else {
-          showToast(json && json.error ? "Fel: " + json.error : "Något gick fel. Försök igen.", false);
-        }
-      } catch (err) {
-        showToast("Kunde inte kontakta servern. Försök igen.", false);
-      } finally {
-        btn.disabled = false; btn.textContent = "Skicka bokning";
-      }
-    });
-  </script>
-</body>
-</html>
+    btn.disabled = false; btn.textContent = "Skicka bokning";
+  });
+</script>
