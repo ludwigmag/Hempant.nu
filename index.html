@@ -19,11 +19,10 @@
     <div class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
       <div class="flex items-center gap-3">
         <div class="h-9 w-9 rounded-xl bg-emerald-600"></div>
-        <span class="font-semibold">PantHämt</span>
+        <span class="font-semibold">HEMPANT</span>
       </div>
-      <nav class="flex items-center gap-2 text-sm">
-        <a href="#info" class="px-3 py-2 rounded-xl hover:bg-black/5">Så funkar det</a>
-      </nav>
+      <!-- (nav intentionally empty per cleanup) -->
+      <nav class="flex items-center gap-2 text-sm"></nav>
     </div>
   </header>
 
@@ -50,8 +49,8 @@
       </div>
     </section>
 
-    <!-- Info -->
-    <section id="info" class="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Simple 4-step info (kept, no “Välj i rullbandsmenyn”) -->
+    <section class="mt-16 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div class="rounded-3xl border bg-white/70 p-5">
         <div class="text-lg font-semibold">1. Boka</div>
         <div class="opacity-80">Fyll i adress & telefon (Swish).</div>
@@ -127,7 +126,7 @@
   </div>
 
   <footer class="border-t bg-white/50">
-    <div class="mx-auto max-w-5xl px-4 py-8 text-sm opacity-80">© <span id="year"></span> PantHämt</div>
+    <div class="mx-auto max-w-5xl px-4 py-8 text-sm opacity-80">© <span id="year"></span> HEMPANT</div>
   </footer>
 
   <script>
@@ -163,7 +162,7 @@
     function validPhone(v){
       if (!v) return false;
       const trimmed = v.trim();
-      // Accept Swedish mobile patterns like 07… or E.164 +46…
+      // Accept Swedish/E.164 patterns like 07… or +46…
       return /^\+?\d[\d\s-]{6,}$/.test(trimmed);
     }
 
