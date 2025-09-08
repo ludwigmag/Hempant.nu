@@ -4,12 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pantupphämtning</title>
-  <!-- Tailwind via CDN (räcker för en enkel one‑pager) -->
+  <!-- Basic SEO (no Twitter tags as requested) -->
+  <meta name="description" content="Boka upphämtning av pantpåsar och få utbetalning via Swish eller saldokonto. Enkelt och hemtrevligt.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='48' fill='%2310b981'/%3E%3Ctext x='50' y='58' text-anchor='middle' font-size='54' fill='white' font-family='Segoe UI,Roboto,Helvetica,Arial,sans-serif'%3EP%3C/text%3E%3C/svg%3E"/>
+  
+  <!-- Tailwind via CDN for this one‑pager -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Dölj scrollbar på rullband i vissa webbläsare (valfritt) */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    #adminToggle{ position:fixed; right:16px; bottom:16px; padding:10px 14px; border-radius:14px; background:#111827; color:#fff; box-shadow:0 6px 16px rgba(0,0,0,.15); z-index:9999; font-size:14px; opacity:.85; transition:transform .08s ease, opacity .2s ease; }
+    #adminToggle:hover{ opacity:1; }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-b from-amber-50 to-rose-50 text-stone-800">
@@ -226,7 +231,7 @@
     <!-- THANKS -->
     <section id="view-thanks" class="hidden mx-auto max-w-2xl text-center">
       <h1 class="text-3xl font-semibold mb-2">Tack för din bokning! 🎉</h1>
-      <p class="opacity-80 mb-6">Vi har mottagit din förfrågan och återkommer så snart vi kan med bekräftelse.</p>
+      <p class="opacity-80 mb-6">Vi har mottagit din förfrågan.</p>
       <div class="rounded-3xl border bg-white/70 p-6 text-left" id="summaryBox"></div>
       <div class="mt-6 flex justify-center gap-3">
         <button class="rounded-2xl bg-stone-900 px-5 py-3 text-white" data-nav="home">Till startsidan</button>
@@ -240,6 +245,10 @@
       <div class="rounded-3xl border bg-white/70 p-6">
         <p class="text-lg">Saldo: <span class="font-semibold" id="saldoKonto">0 kr</span></p>
         <div id="ordersList" class="mt-4 space-y-3"></div>
+        <div class="mt-4 flex flex-wrap gap-3">
+          <button id="downloadCsv" class="rounded-2xl px-4 py-2 border hover:bg-black/5">Ladda ner bokningar (CSV)</button>
+          <button id="clearData" class="rounded-2xl px-4 py-2 border hover:bg-black/5">Rensa demo‑data</button>
+        </div>
       </div>
       <div class="mt-6 flex gap-3">
         <button class="rounded-2xl bg-stone-900 px-5 py-3 text-white" data-nav="home">Till startsidan</button>
@@ -254,18 +263,19 @@
     <div class="mx-auto max-w-5xl px-4 py-8 text-sm opacity-80">© <span id="year"></span> PantHämt • Integritetspolicy • Villkor</div>
   </footer>
 
+  <button id="adminToggle" title="Admin">Admin</button>
+
   <script>
-    // ----------------- State & helpers (localStorage) -----------------
+    // ----------------- Config -----------------
+    const ADMIN_PIN = '1234'; // change me
+
+    // ----------------- State & helpers -----------------
     const keySaldo = 'demo_saldo';
     const keyOrders = 'demo_orders';
 
-    function getSaldo() {
-      const raw = localStorage.getItem(keySaldo);
-      return raw ? Number(raw) : 0;
-    }
+    function getSaldo() { const raw = localStorage.getItem(keySaldo); return raw ? Number(raw) : 0; }
     function setSaldo(n) {
       localStorage.setItem(keySaldo, String(n));
-      // uppdatera alla visuella saldon
       const kr = formatKr(n);
       document.getElementById('saldoTop').textContent = kr;
       document.getElementById('saldoText').textContent = kr;
@@ -273,41 +283,23 @@
       document.getElementById('saldoKonto').textContent = kr;
     }
 
-    function addOrder(o) {
-      const list = getOrders();
-      list.unshift(o);
-      localStorage.setItem(keyOrders, JSON.stringify(list));
-    }
-    function getOrders() {
-      try { return JSON.parse(localStorage.getItem(keyOrders) || '[]'); } catch { return []; }
-    }
+    function addOrder(o) { const list = getOrders(); list.unshift(o); localStorage.setItem(keyOrders, JSON.stringify(list)); }
+    function getOrders() { try { return JSON.parse(localStorage.getItem(keyOrders) || '[]'); } catch { return []; } }
 
-    function formatKr(n) {
-      try { return new Intl.NumberFormat('sv-SE', { style: 'currency', currency: 'SEK', maximumFractionDigits: 0 }).format(n); } catch { return n + ' kr'; }
-    }
-    function formatDT(v) {
-      try { return new Date(v).toLocaleString(); } catch { return v; }
-    }
+    function formatKr(n) { try { return new Intl.NumberFormat('sv-SE',{style:'currency',currency:'SEK',maximumFractionDigits:0}).format(n); } catch { return n + ' kr'; } }
+    function formatDT(v) { try { return new Date(v).toLocaleString(); } catch { return v; } }
 
-    // ----------------- Routing (visa/dölj sektioner) -----------------
+    // ----------------- Routing -----------------
     const views = ['home','form','thanks','konto'];
     function show(route) {
-      views.forEach(v => {
-        document.getElementById('view-' + v).classList.toggle('hidden', v !== route);
-      });
+      views.forEach(v => document.getElementById('view-' + v).classList.toggle('hidden', v !== route));
       document.title = route === 'home' ? 'Pantupphämtning' : route === 'form' ? 'Boka upphämtning' : route === 'konto' ? 'Mitt saldo' : 'Tack!';
-      // uppdatera kontovy när den öppnas
-      if (route === 'konto') renderOrders();
+      if (route === 'konto') { renderOrders(); wireKonto(); }
     }
+    document.querySelectorAll('[data-nav]').forEach(btn => btn.addEventListener('click', () => show(btn.dataset.nav)));
+    document.querySelectorAll('[data-rullband="Upphämtning"]').forEach(btn => btn.addEventListener('click', () => show('form')));
 
-    document.querySelectorAll('[data-nav]').forEach(btn => {
-      btn.addEventListener('click', () => show(btn.dataset.nav));
-    });
-    document.querySelectorAll('[data-rullband="Upphämtning"]').forEach(btn => {
-      btn.addEventListener('click', () => show('form'));
-    });
-
-    // ----------------- Formulärlogik -----------------
+    // ----------------- Form logic -----------------
     const form = document.getElementById('bookingForm');
     const utbetalningSelect = document.getElementById('utbetalningSelect');
     const swishField = document.getElementById('swishField');
@@ -318,7 +310,7 @@
       document.getElementById('saldoInfo').classList.toggle('hidden', isSwish);
     });
 
-    // default datetime: nästa heltimme
+    // default datetime: next full hour
     (function setDefaultDT(){
       const input = form.elements['onskadHamtningsTid'];
       const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
@@ -326,41 +318,59 @@
       input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     })();
 
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const data = Object.fromEntries(new FormData(form).entries());
 
-      // validering
+      // validate
       const errs = [];
+      if (!data.namn) errs.push('Namn saknas');
       if (!/^\s*07\d[\d\s-]{6,}\s*$/.test(data.telefon || '')) errs.push('Telefon (svenskt mobilnr) ogiltigt');
       if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) errs.push('E-postadress ogiltig');
+      if (!data.adress) errs.push('Adress saknas');
+      if (!data.postnummer) errs.push('Postnummer saknas');
+      if (!data.ort) errs.push('Ort saknas');
       if (!data.antalPasar || Number(data.antalPasar) < 0) errs.push('Antal påsar ogiltigt');
       if (!data.pantBelopp || Number(data.pantBelopp) < 0) errs.push('Pantbelopp ogiltigt');
       if (!data.onskadHamtningsTid) errs.push('Önskad hämtning saknas');
       if ((data.utbetalning === 'swish') && !/^\s*07\d[\d\s-]{6,}\s*$/.test(data.swish || '')) errs.push('Swish-nummer ogiltigt');
       if (errs.length) { alert('Korrigera följande:\n\n- ' + errs.join('\n- ')); return; }
 
+      // call backend (serverless function)
+      let serverId = null, serverTime = null, apiOk = false;
+      try {
+        const resp = await fetch('/api/book', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data)
+        });
+        const json = await resp.json();
+        apiOk = resp.ok && json && json.ok;
+        serverId = json.serverId || null; serverTime = json.serverTime || null;
+      } catch (e) { apiOk = false; }
+
+      const id = apiOk && serverId ? serverId : ('local_' + Math.random().toString(36).slice(2));
+      const createdAt = apiOk && serverTime ? serverTime : new Date().toISOString();
+
       const pantBelopp = Number(data.pantBelopp || 0);
       const beloppTillSaldo = data.utbetalning === 'saldo' ? pantBelopp : 0;
-
-      const order = {
-        ...data,
-        id: 'order_' + Math.random().toString(36).slice(2),
-        createdAt: new Date().toISOString()
-      };
+      const order = { ...data, id, createdAt, status: 'new' };
 
       addOrder(order);
       if (beloppTillSaldo > 0) setSaldo(getSaldo() + beloppTillSaldo);
 
-      // fyll sammanfattning
       renderSummary(order);
       show('thanks');
       form.reset();
-      // återställ default
       document.getElementById('saldoInfo').classList.toggle('hidden', data.utbetalning === 'swish');
       swishField.classList.toggle('hidden', data.utbetalning !== 'swish');
       document.getElementById('utbetalningSelect').value = 'saldo';
-      setDefaultDT();
+      (function setDefaultDT(){
+        const input = form.elements['onskadHamtningsTid'];
+        const d = new Date(); d.setMinutes(0,0,0); d.setHours(d.getHours()+1);
+        const pad = n => String(n).padStart(2,'0');
+        input.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      })();
+
+      if (!apiOk) console.warn('API call failed; saved locally only');
     });
 
     // ----------------- Rendering helpers -----------------
@@ -387,20 +397,89 @@
       if (!list.length) { box.innerHTML = '<p class="mt-4 text-sm opacity-80">Inga bokningar ännu.</p>'; return; }
       box.innerHTML = '<div class="text-sm opacity-80">Senaste bokningar</div>' +
         list.map(o => `
-          <div class="rounded-2xl border bg-white/70 p-4 text-sm">
+          <div class="rounded-2xl border bg-white/70 p-4 text-sm" data-id="${o.id}">
             <div class="font-medium mb-1">${o.namn} • ${formatDT(o.onskadHamtningsTid)}</div>
             <div class="opacity-80">${o.adress}, ${o.postnummer} ${o.ort} • ${o.antalPasar} påsar • ${(o.pantTyp === 'exakt' ? 'Exakt' : 'Uppskattad')} ${formatKr(Number(o.pantBelopp||0))} • ${(o.utbetalning === 'saldo' ? 'Saldo' : 'Swish')}</div>
+            <div class="mt-2 text-xs inline-flex items-center gap-2 px-2 py-1 rounded-full ${o.status==='registered' ? 'bg-emerald-100' : 'bg-black/5'}" id="status_${o.id}">
+              ${o.status==='registered' ? `Registrerad ${formatDT(o.registeredAt)}` : 'Ej registrerad'}
+            </div>
+            <div class="mt-2" id="ctl_${o.id}"></div>
           </div>
         `).join('');
+      enhanceOrdersList();
     }
 
-    function row(label, value){
-      return `<div class="grid grid-cols-3 gap-4"><div class="opacity-70">${label}</div><div class="col-span-2 font-medium">${value}</div></div>`;
+    function row(label, value){ return `<div class=\"grid grid-cols-3 gap-4\"><div class=\"opacity-70\">${label}</div><div class=\"col-span-2 font-medium\">${value}</div></div>`; }
+
+    function wireKonto(){
+      const dl = document.getElementById('downloadCsv');
+      const clr = document.getElementById('clearData');
+      if (dl) dl.onclick = () => downloadCsv();
+      if (clr) clr.onclick = () => { localStorage.removeItem(keyOrders); localStorage.removeItem(keySaldo); setSaldo(0); renderOrders(); };
+    }
+
+    function downloadCsv(){
+      const list = getOrders();
+      if (!list.length) { alert('Inga bokningar att exportera.'); return; }
+      const headers = ['id','createdAt','namn','telefon','email','adress','postnummer','ort','portkod','antalPasar','pantTyp','pantBelopp','onskadHamtningsTid','utbetalning','swish','status','registeredAt'];
+      const rows = [headers.join(',')].concat(list.map(o => headers.map(h => `"${String(o[h] ?? '').replaceAll('"','""')}"`).join(',')));
+      const blob = new Blob(["\ufeff" + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'bokningar.csv';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    }
+
+    // ----------------- Admin mode (inlined) -----------------
+    let adminActive = false;
+    document.getElementById('adminToggle').addEventListener('click', () => {
+      if (!adminActive){
+        const pin = prompt('Ange admin‑PIN');
+        if (pin === ADMIN_PIN){ adminActive = true; document.getElementById('adminToggle').textContent = 'Admin ✓'; renderOrders(); }
+        else if (pin !== null) alert('Fel PIN');
+      } else { adminActive = false; document.getElementById('adminToggle').textContent = 'Admin'; renderOrders(); }
+    });
+
+    function enhanceOrdersList(){
+      const list = getOrders();
+      const box = document.getElementById('ordersList');
+      const cards = Array.from(box.querySelectorAll('[data-id]'));
+      cards.forEach(card => {
+        const id = card.getAttribute('data-id');
+        const o = list.find(x => x.id === id);
+        const ctl = card.querySelector('#ctl_' + id);
+        ctl.innerHTML = '';
+        if (!adminActive) return;
+        const btn = document.createElement('button');
+        btn.className = 'rounded-2xl px-3 py-2 border hover:bg-black/5 text-sm';
+        if (o.status !== 'registered'){
+          btn.textContent = 'Markera som registrerad';
+          btn.onclick = () => markRegistered(id);
+        } else {
+          btn.textContent = 'Ångra registrering';
+          btn.onclick = () => unmarkRegistered(id);
+        }
+        ctl.appendChild(btn);
+      });
+    }
+
+    function markRegistered(id){
+      const list = getOrders();
+      const i = list.findIndex(o => o.id === id); if (i === -1) return;
+      list[i].status = 'registered'; list[i].registeredAt = new Date().toISOString();
+      localStorage.setItem(keyOrders, JSON.stringify(list));
+      renderOrders();
+    }
+    function unmarkRegistered(id){
+      const list = getOrders();
+      const i = list.findIndex(o => o.id === id); if (i === -1) return;
+      list[i].status = 'new'; delete list[i].registeredAt;
+      localStorage.setItem(keyOrders, JSON.stringify(list));
+      renderOrders();
     }
 
     // ----------------- Init -----------------
     document.getElementById('year').textContent = new Date().getFullYear();
-    setSaldo(getSaldo()); // uppdatera alla saldo-element vid start
+    setSaldo(getSaldo());
     show('home');
   </script>
 </body>
